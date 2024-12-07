@@ -11,7 +11,6 @@ from openai import (
     RateLimitError,
     Timeout,
 )
-
 MAPPING = {
     "stop_after_attempt": stop_after_attempt,
     "wait_exponential": wait_exponential,
@@ -23,17 +22,11 @@ MAPPING = {
     "Timeout": Timeout
 }
 
-try:
-    with open('secrets.json', encoding='utf-8') as file:
-        secrets = json.load(file)
-except FileNotFoundError:
-    secrets = {}
+
 
 ITERABLES_MAPPING = {
     
 }
-
-ITERABLES_MAPPING.update(secrets)
 
 for key, value in ITERABLES_MAPPING.items():
     ITERABLES_MAPPING[key] = cycle(value)

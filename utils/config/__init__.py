@@ -20,7 +20,7 @@ from utils.config.mapping import MAPPING, ITERABLES_MAPPING
 
 
 class Configuration(BaseConfiguration):
-    def __init__(self, config_path: str | None = None):
-        super().__init__(MAPPING, ITERABLES_MAPPING, config_path)
+    def __init__(self, config_path: str | None = None, secrets_path: str = 'secrets.json'):
+        super().__init__(MAPPING, ITERABLES_MAPPING, config_path, secrets_path=secrets_path)
 
 __all__ = ['Configuration']

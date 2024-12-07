@@ -4,6 +4,7 @@ import json
 import os
 import re
 import warnings
+from itertools import cycle
 from typing import Any, Dict
 
 PREMADE_CONFIGS = {}
@@ -13,9 +14,8 @@ for filename in os.listdir('configs'):
         with open(f'configs/{filename}', encoding='utf-8') as f:
             PREMADE_CONFIGS[filename[:-5]] = json.load(f)
 
-
 class Configuration:
-    def __init__(self, mapping: dict, iterables_mapping: dict, config_path: str | None) -> None:
+    def __init__(self, mapping: dict, iterables_mapping: dict, config_path: str | None, secrets_path: str | None) -> None:
        
         
         self._config = {}
@@ -46,6 +46,16 @@ class Configuration:
         # This is to ensure that all the keys are present in the configuration
         self._config.update({key: value for key, value in base_config.items() if key not in self._config})
 
+        try:
+            with open('secrets.json', encoding='utf-8') as file:
+                secrets = json.load(file)
+        except FileNotFoundError:
+            secrets = {}
+        for key, value in secrets.items():
+            secrets[key] = cycle(value)
+        
+        iterables_mapping.update(secrets)
+                   
         self._mapping = mapping
         self._iterables_mapping = iterables_mapping
     
