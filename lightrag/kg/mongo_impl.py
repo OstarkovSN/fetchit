@@ -1,5 +1,5 @@
 import os
-from tqdm.auto import tqdm
+from tqdm.asyncio import tqdm
 from dataclasses import dataclass
 from pymongo import MongoClient
 

@@ -6,13 +6,10 @@
     "symbols_in_fragment": 2400,
     "rag_kwargs": {
         "entity_extract_max_gleaning": 1,
-        "llm_model_kwargs": {
-            "sleep_time": 40
-        },
         "chunk_token_size": 600,
         "chunk_overlap_token_size": 250,
-        "chunk_string_size": 1000,
-        "chunk_overlap_string_size": 500
+        "chunk_string_size": 3000,
+        "chunk_overlap_string_size": 200
     },
     "openai_complete_if_cache_kwargs": {
         "stop": {

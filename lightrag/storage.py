@@ -1,7 +1,7 @@
 import asyncio
 import html
 import os
-from tqdm.auto import tqdm
+from tqdm.asyncio import tqdm
 from dataclasses import dataclass
 from typing import Any, Union, cast
 import networkx as nx

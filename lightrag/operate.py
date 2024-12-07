@@ -2,7 +2,7 @@ import os
 import asyncio
 import json
 import re
-from tqdm.auto import tqdm 
+from tqdm.asyncio import tqdm 
 from typing import Union
 from collections import Counter, defaultdict
 import warnings

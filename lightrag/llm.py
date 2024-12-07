@@ -7,6 +7,7 @@ import aiohttp
 import numpy as np
 import ollama
 import asyncio
+import tenacity
 
 from openai import (
     AsyncOpenAI,
@@ -44,13 +45,13 @@ async def _openai_complete_if_cache(
     model,
     prompt,
     system_prompt=None,
-    history_messages=[],
-    base_url=None,
-    api_key=None,
-    sleep_time=0,
+    history_messages: list[dict[str, str]] | None = None,
+    base_url: str | None = None,
+    api_key: str | None = None,
     **kwargs
 ):
-
+    if history_messages is None:
+        history_messages = []
     openai_async_client = (
         AsyncOpenAI(api_key=api_key) if base_url is None else AsyncOpenAI(api_key=api_key, base_url=base_url)
     )
@@ -85,18 +86,20 @@ async def _openai_complete_if_cache(
     return content
 
 async def openai_complete_if_cache(
-    model,
-    prompt,
-    system_prompt=None,
-    history_messages=[],
-    base_url=None,
-    api_key=None,
-    sleep_time=0,
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=4, max=10),
-    retry_=retry_if_exception_type((RateLimitError, APIConnectionError, Timeout)),
+    model: str,
+    prompt: str,
+    system_prompt: str | None = None,
+    history_messages: list[dict[str, str]] | None = None,
+    base_url: str | None = None,
+    api_key: str | None = None,
+    stop: tenacity.stop.stop_base | None = stop_after_attempt(3),
+    wait: tenacity.wait.wait_base | None = wait_exponential(multiplier=1, min=4, max=10),
+    retry_ = retry_if_exception_type((RateLimitError, APIConnectionError, Timeout)),
     **kwargs,
 ) -> str:
+    with open("log.log", "a") as f:
+        f.write(prompt + "\n")
+        f.write('-----------------------------------------------------------------------------------------' + api_key + "\n")
     res = await retry(stop=stop, wait=wait, retry=retry_)(_openai_complete_if_cache)(
         model,
         prompt,
@@ -104,7 +107,6 @@ async def openai_complete_if_cache(
         history_messages=history_messages,
         base_url=base_url,
         api_key=api_key,
-        sleep_time=sleep_time,
         **kwargs,
     )
     assert isinstance(res, str)

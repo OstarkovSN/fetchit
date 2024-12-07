@@ -1,6 +1,6 @@
 import asyncio
 import os
-from tqdm.auto import tqdm
+from tqdm.asyncio import tqdm
 from dataclasses import dataclass
 import numpy as np
 from lightrag.utils import logger

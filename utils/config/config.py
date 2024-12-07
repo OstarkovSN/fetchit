@@ -146,9 +146,9 @@ class Configuration:
             # check if the key is a path
             for sep in ('/', '\\\\'):
                 if re.search(sep, key):
-                    *folders, filename = key.split(sep)
+                    folders = key.split(sep)
                     path = ''
-                    for folder in folders:
+                    for i, folder in enumerate(folders):
                         if folder.startswith('!'):
                             real_folder = folder[1:]
                             if real_folder == '__new__':
@@ -163,17 +163,16 @@ class Configuration:
                                 real_folder = self._config[folder]
                             except KeyError:
                                 real_folder = folder
+                        if i == len(folders)-1:
+                            filename = folder
+                            real_filename = real_folder
+                            name, ext = os.path.splitext(filename)
+                            _, real_ext = os.path.splitext(real_filename)
+                            if not ext:
+                                ext = real_ext
+                            real_folder = name+ext
                         path = os.path.join(path, real_folder)
-                    name, ext = os.path.splitext(filename)
-                    try:
-                        real_filename = self._config[name]
-                    except KeyError:
-                        real_filename = name
-                    _, real_ext = os.path.splitext(real_filename)
-                    if not ext:
-                        ext = real_ext
-                    res_path = os.path.join(path, real_filename+ext)
-                    return res_path
+                    return path
             
             # check if key is something to map, otherwise raise KeyError
             

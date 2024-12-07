@@ -1,6 +1,6 @@
 import asyncio
 import os
-from tqdm.auto import tqdm
+from tqdm.asyncio import tqdm
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import partial
