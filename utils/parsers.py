@@ -47,6 +47,9 @@ class UltimateParser:
         Returns:
             The content of the file, as parsed by the appropriate parser function.
         """
+        print(f'Extracting content from file: {file_path}...', end='')
         _, ext = os.path.splitext(file_path)
-        return self.parsers_mapping[ext](file_path)
+        res = self.parsers_mapping[ext](file_path)
+        print('done!')
+        return res
         
