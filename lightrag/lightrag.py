@@ -1,6 +1,6 @@
 import asyncio
 import os
-from tqdm.asyncio import tqdm as tqdm_async
+from tqdm.auto import tqdm
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import partial
@@ -271,7 +271,7 @@ class LightRAG:
             logger.info(f"[New Docs] inserting {len(new_docs)} docs")
 
             inserting_chunks = {}
-            for doc_key, doc in tqdm_async(
+            for doc_key, doc in tqdm(
                 new_docs.items(), desc="Chunking documents", unit="doc"
             ):
                 chunks = {

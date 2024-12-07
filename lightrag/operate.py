@@ -2,7 +2,7 @@ import os
 import asyncio
 import json
 import re
-from tqdm.asyncio import tqdm as tqdm_async
+from tqdm.auto import tqdm 
 from typing import Union
 from collections import Counter, defaultdict
 import warnings
@@ -423,7 +423,7 @@ async def extract_entities(
         return dict(maybe_nodes), dict(maybe_edges)
 
     results = []
-    for result in tqdm_async(
+    for result in tqdm(
         asyncio.as_completed([_process_single_content(c) for c in ordered_chunks]),
         total=len(ordered_chunks),
         desc="Extracting entities from chunks",
@@ -440,7 +440,7 @@ async def extract_entities(
             maybe_edges[tuple(sorted(k))].extend(v)
     logger.info("Inserting entities into storage...")
     all_entities_data = []
-    for result in tqdm_async(
+    for result in tqdm(
         asyncio.as_completed(
             [
                 _merge_nodes_then_upsert(k, v, knowledge_graph_inst, global_config)
@@ -455,7 +455,7 @@ async def extract_entities(
 
     logger.info("Inserting relationships into storage...")
     all_relationships_data = []
-    for result in tqdm_async(
+    for result in tqdm(
         asyncio.as_completed(
             [
                 _merge_edges_then_upsert(

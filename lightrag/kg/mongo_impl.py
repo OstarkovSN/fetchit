@@ -1,5 +1,5 @@
 import os
-from tqdm.asyncio import tqdm as tqdm_async
+from tqdm.auto import tqdm
 from dataclasses import dataclass
 from pymongo import MongoClient
 
@@ -41,7 +41,7 @@ class MongoKVStorage(BaseKVStorage):
         return set([s for s in data if s not in existing_ids])
 
     async def upsert(self, data: dict[str, dict]):
-        for k, v in tqdm_async(data.items(), desc="Upserting"):
+        for k, v in tqdm(data.items(), desc="Upserting"):
             self._data.update_one({"_id": k}, {"$set": v}, upsert=True)
             data[k]["_id"] = k
         return data
