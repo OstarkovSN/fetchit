@@ -1,0 +1,38 @@
+{
+    "":"",
+    "raw": "data/raw/",
+    "processed": "data/processed/",
+    "final": "data/final/",
+    "symbols_in_fragment": 2400,
+    "rag_kwargs": {
+        "entity_extract_max_gleaning": 1,
+        "llm_model_kwargs": {
+            "sleep_time": 40
+        },
+        "chunk_token_size": 600,
+        "chunk_overlap_token_size": 250,
+        "chunk_string_size": 1000,
+        "chunk_overlap_string_size": 500
+    },
+    "openai_complete_if_cache_kwargs": {
+        "stop": {
+            "type": "stop_after_attempt",
+            "args": [10],
+            "kwargs": {}
+        },
+        "wait": {
+            "type": "wait_fixed",
+            "args": [60],
+            "kwargs": {}
+        },
+        "retry_": {
+            "type": "retry_if_exception_type",
+            "args": [{
+                "type": "tuple",
+                "args": [["RateLimitError", "APIConnectionError", "Timeout"]],
+                "kwargs": {}
+            }],
+            "kwargs": {}
+        }
+    }
+}
