@@ -9,6 +9,7 @@ def parse_pdf(file_path):
          content = []
         
          for page in pdf.pages:
+             images = page.images
              text = page.extract_text()
              content.append(text)
             

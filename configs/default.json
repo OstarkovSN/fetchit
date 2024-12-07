@@ -5,11 +5,11 @@
     "final": "data/final/",
     "symbols_in_fragment": 2400,
     "rag_kwargs": {
-        "entity_extract_max_gleaning": 1,
         "chunk_token_size": 600,
         "chunk_overlap_token_size": 250,
         "chunk_string_size": 3000,
-        "chunk_overlap_string_size": 200
+        "chunk_overlap_string_size": 200,
+        "llm_model_max_token_size": 16000
     },
     "openai_complete_if_cache_kwargs": {
         "stop": {

@@ -6,6 +6,7 @@ from datetime import datetime
 from functools import partial
 from typing import Type, cast
 from utils.config.config import Configuration
+from collections import Counter, OrderedDict
 
 from .llm import (
     gpt_4o_mini_complete,
@@ -538,3 +539,61 @@ class LightRAG:
                 continue
             tasks.append(cast(StorageNameSpace, storage_inst).index_done_callback())
         await asyncio.gather(*tasks)
+    
+    def search(self, query: str, param: QueryParam = QueryParam()):
+        loop = always_get_an_event_loop()
+        return loop.run_until_complete(self.asearch(query, param))
+    
+    async def asearch(self, query: str, param: QueryParam = QueryParam()):
+        param.only_need_context = True
+        (ll_node_datas,
+         ll_use_relations, 
+         ll_use_text_units,
+         hl_edge_datas,
+         hl_use_entities,
+         hl_use_text_units
+        ) = self.query(query, param)
+        
+        doc_counter = Counter()
+        chunk_counter = Counter()
+        
+        for datas_with_chunk_id in (ll_node_datas, hl_edge_datas, ll_use_relations, hl_use_entities):
+            if datas_with_chunk_id is not None:
+                for _data in datas_with_chunk_id:
+                    chunk_id_s = _data["source_id"]
+                    for chunk_id in chunk_id_s.split("<SEP>"):
+                        chunk = await self.text_chunks.get_by_id(chunk_id)
+                        if chunk is None:
+                            print(chunk_id)
+                            continue
+                        chunk_counter[chunk_id] += 1
+                        doc_id = chunk['full_doc_id']
+                        doc_counter[doc_id] += 1
+        for datas_with_doc_id in (ll_use_text_units, hl_use_text_units):
+            if datas_with_doc_id is not None:
+                for _data in datas_with_doc_id:
+                    doc_id = _data["full_doc_id"]
+                    doc_counter[doc_id] += 1
+        
+        docs = {}
+        for doc_id, n in doc_counter.items():
+            doc = await self.full_docs.get_by_id(doc_id)
+            assert doc is not None, "Somehow document is missing"
+            docs[doc['path']] = n
+
+        chunks = {}
+        for chunk_id, n in chunk_counter.items():
+            chunk = await self.text_chunks.get_by_id(chunk_id)
+            assert chunk is not None, "Somehow chunk is missing"
+            chunks[chunk['path']] = n
+        
+        total_docs = sum(docs.values())
+        docs = {k: round(v/total_docs*100, 2) for k, v in docs.items()}
+        total_chunks = sum(chunks.values())
+        chunks = {k: round(v/total_chunks*100, 2) for k, v in chunks.items()}
+        
+        docs = OrderedDict(sorted(docs.items(), key=lambda x: x[1], reverse=True))
+        chunks = OrderedDict(sorted(chunks.items(), key=lambda x: x[1], reverse=True))
+        return docs, chunks
+                    
+            

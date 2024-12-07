@@ -97,9 +97,6 @@ async def openai_complete_if_cache(
     retry_ = retry_if_exception_type((RateLimitError, APIConnectionError, Timeout)),
     **kwargs,
 ) -> str:
-    with open("log.log", "a") as f:
-        f.write(prompt + "\n")
-        f.write('-----------------------------------------------------------------------------------------' + api_key + "\n")
     res = await retry(stop=stop, wait=wait, retry=retry_)(_openai_complete_if_cache)(
         model,
         prompt,

@@ -348,12 +348,23 @@ async def extract_entities(
 
     continue_prompt = PROMPTS["entiti_continue_extraction"]
     if_loop_prompt = PROMPTS["entiti_if_loop_extraction"]
+    yes_results: set = PROMPTS["yes_results"]
 
     already_processed = 0
     already_entities = 0
     already_relations = 0
 
     async def _process_single_content(chunk_key_dp: tuple[str, TextChunkSchema]):
+        """
+        Process a single content string.
+
+        :param chunk_key_dp: A tuple containing the chunk key and the content string
+        :type chunk_key_dp: tuple[str, TextChunkSchema]
+
+        :return: A tuple containing two dictionaries. The first dictionary, maybe_nodes, contains the extracted entities.
+                The second dictionary, maybe_edges, contains the extracted relationships.
+        :rtype: tuple[dict, dict]
+        """
         nonlocal already_processed, already_entities, already_relations
         chunk_key = chunk_key_dp[0]
         chunk_dp = chunk_key_dp[1]
@@ -377,7 +388,9 @@ async def extract_entities(
                 if_loop_prompt, history_messages=history
             )
             if_loop_result = if_loop_result.strip().strip('"').strip("'").lower()
-            if if_loop_result != "yes":
+            with open("log.log", "a") as f:
+                f.write(f"if_loop_result: {if_loop_result}\n")
+            if if_loop_result not in yes_results:
                 break
 
         records = split_string_by_multi_markers(
@@ -387,25 +400,36 @@ async def extract_entities(
 
         maybe_nodes = defaultdict(list)
         maybe_edges = defaultdict(list)
+        # Iterate over each record in the records list
         for record in records:
+            # Record is wrapped in parentheses, so we have to extract it
             record = re.search(r"\((.*)\)", record)
             if record is None:
+                # If record is None, skip this iteration
                 continue
+            # Extract the contents of the parentheses
             record = record.group(1)
+            # Split the record by the tuple delimiter
             record_attributes = split_string_by_multi_markers(
                 record, [context_base["tuple_delimiter"]]
             )
+
+            # Check if the record is an entity
             if_entities = await _handle_single_entity_extraction(
                 record_attributes, chunk_key
             )
             if if_entities is not None:
+                # If the record is an entity, add it to the maybe_nodes dictionary
                 maybe_nodes[if_entities["entity_name"]].append(if_entities)
+                # Skip to the next iteration
                 continue
 
+            # Check if the record is a relationship
             if_relation = await _handle_single_relationship_extraction(
                 record_attributes, chunk_key
             )
             if if_relation is not None:
+                # If the record is a relationship, add it to the maybe_edges dictionary
                 maybe_edges[(if_relation["src_id"], if_relation["tgt_id"])].append(
                     if_relation
                 )
@@ -574,7 +598,13 @@ async def kg_query(
 
     # Build context
     keywords = [ll_keywords, hl_keywords]
-    context = await _build_query_context(
+    (ll_node_datas,
+     ll_use_relations,
+     ll_use_text_units,
+     hl_edge_datas, 
+     hl_use_entities,
+     hl_use_text_units
+     ) = await _get_data_for_contexts(
         keywords,
         knowledge_graph_inst,
         entities_vdb,
@@ -582,9 +612,20 @@ async def kg_query(
         text_chunks_db,
         query_param,
     )
-
     if query_param.only_need_context:
-        return context
+        return ll_node_datas, ll_use_relations, ll_use_text_units, hl_edge_datas, hl_use_entities, hl_use_text_units
+
+    context = _build_query_context(
+        ll_node_datas,
+        ll_use_relations,
+        ll_use_text_units,
+        hl_edge_datas,
+        hl_use_entities,
+        hl_use_text_units,
+        query_param,
+    )
+
+    
     if context is None:
         return PROMPTS["fail_response"]
     sys_prompt_temp = PROMPTS["rag_response"]
@@ -611,7 +652,7 @@ async def kg_query(
     return response
 
 
-async def _build_query_context(
+async def _get_data_for_contexts(
     query: list,
     knowledge_graph_inst: BaseGraphStorage,
     entities_vdb: BaseVectorStorage,
@@ -620,22 +661,18 @@ async def _build_query_context(
     query_param: QueryParam,
 ):
     ll_kewwords, hl_keywrds = query[0], query[1]
+    ll_node_datas, ll_use_relations, ll_use_text_units = None, None, None
+    hl_edge_datas, hl_use_entities, hl_use_text_units = None, None, None
     if query_param.mode in ["local", "hybrid"]:
         if ll_kewwords == "":
-            ll_entities_context, ll_relations_context, ll_text_units_context = (
-                "",
-                "",
-                "",
-            )
             warnings.warn(
                 "Low Level context is None. Return empty Low entity/relationship/source"
             )
             query_param.mode = "global"
         else:
-            (
-                ll_entities_context,
-                ll_relations_context,
-                ll_text_units_context,
+            (ll_node_datas,
+             ll_use_relations,
+             ll_use_text_units
             ) = await _get_node_data(
                 ll_kewwords,
                 knowledge_graph_inst,
@@ -645,20 +682,15 @@ async def _build_query_context(
             )
     if query_param.mode in ["global", "hybrid"]:
         if hl_keywrds == "":
-            hl_entities_context, hl_relations_context, hl_text_units_context = (
-                "",
-                "",
-                "",
-            )
             warnings.warn(
                 "High Level context is None. Return empty High entity/relationship/source"
             )
             query_param.mode = "local"
         else:
             (
-                hl_entities_context,
-                hl_relations_context,
-                hl_text_units_context,
+                hl_edge_datas,
+                hl_use_entities,
+                hl_use_text_units,
             ) = await _get_edge_data(
                 hl_keywrds,
                 knowledge_graph_inst,
@@ -666,25 +698,19 @@ async def _build_query_context(
                 text_chunks_db,
                 query_param,
             )
-    if query_param.mode == "hybrid":
-        entities_context, relations_context, text_units_context = combine_contexts(
-            [hl_entities_context, ll_entities_context],
-            [hl_relations_context, ll_relations_context],
-            [hl_text_units_context, ll_text_units_context],
-        )
-    elif query_param.mode == "local":
-        entities_context, relations_context, text_units_context = (
-            ll_entities_context,
-            ll_relations_context,
-            ll_text_units_context,
-        )
-    elif query_param.mode == "global":
-        entities_context, relations_context, text_units_context = (
-            hl_entities_context,
-            hl_relations_context,
-            hl_text_units_context,
-        )
-    return f"""
+
+    return ll_node_datas, ll_use_relations, ll_use_text_units, hl_edge_datas, hl_use_entities, hl_use_text_units
+
+def _build_query_context(
+    ll_node_datas: list[dict] | None,
+    ll_use_relations: list[dict] | None,
+    ll_use_text_units: list[dict] | None,
+    hl_edge_datas: list[dict] | None,
+    hl_use_entities: list[dict] | None,
+    hl_use_text_units: list[dict] | None,
+    query_param: QueryParam,
+):
+    template = """
 -----Entities-----
 ```csv
 {entities_context}
@@ -698,19 +724,106 @@ async def _build_query_context(
 {text_units_context}
 ```
 """
-
+    try:
+        if query_param.mode == "hybrid":
+            assert ll_node_datas is not None
+            assert ll_use_relations is not None
+            assert ll_use_text_units is not None
+            assert hl_edge_datas is not None
+            assert hl_use_entities is not None
+            assert hl_use_text_units is not None
+            
+            (
+                ll_entities_context,
+                ll_relations_context,
+                ll_text_units_context,
+            ) = _get_low_contexts(
+                ll_node_datas,
+                ll_use_relations,
+                ll_use_text_units
+                )
+            (
+                hl_entities_context,
+                hl_relations_context,
+                hl_text_units_context,
+            ) = _get_high_contexts(
+                hl_edge_datas,
+                hl_use_entities,
+                hl_use_text_units
+            )
+            
+            entities_context, relations_context, text_units_context = combine_contexts(
+                [hl_entities_context, ll_entities_context],
+                [hl_relations_context, ll_relations_context],
+                [hl_text_units_context, ll_text_units_context],
+            )
+        elif query_param.mode == "local":
+            assert ll_node_datas is not None
+            assert ll_use_relations is not None
+            assert ll_use_text_units is not None
+            (
+                ll_entities_context,
+                ll_relations_context,
+                ll_text_units_context,
+            ) = _get_low_contexts(
+                ll_node_datas,
+                ll_use_relations,
+                ll_use_text_units
+                )
+            entities_context, relations_context, text_units_context = (
+                ll_entities_context,
+                ll_relations_context,
+                ll_text_units_context,
+            )
+        elif query_param.mode == "global":
+            assert hl_edge_datas is not None
+            assert hl_use_entities is not None
+            assert hl_use_text_units is not None
+            (
+                hl_entities_context,
+                hl_relations_context,
+                hl_text_units_context,
+            ) = _get_high_contexts(
+                hl_edge_datas,
+                hl_use_entities,
+                hl_use_text_units,
+            )
+            entities_context, relations_context, text_units_context = (
+                hl_entities_context,
+                hl_relations_context,
+                hl_text_units_context,
+            )
+    except AssertionError:
+        entities_context, relations_context, text_units_context = "", "", ""
+    return template.format(
+        entities_context=entities_context,
+        relations_context=relations_context,
+        text_units_context=text_units_context,
+    )
 
 async def _get_node_data(
-    query,
+    query: str,
     knowledge_graph_inst: BaseGraphStorage,
     entities_vdb: BaseVectorStorage,
     text_chunks_db: BaseKVStorage[TextChunkSchema],
     query_param: QueryParam,
-):
+) -> tuple[list[dict] | None, list[dict] | None, list[dict] | None]:
+    """Get node data from the knowledge graph
+
+    Args:
+        query (str): The query string
+        knowledge_graph_inst (BaseGraphStorage): The knowledge graph instance
+        entities_vdb (BaseVectorStorage): The vector storage for entities
+        text_chunks_db (BaseKVStorage[TextChunkSchema]): The storage for text chunks
+        query_param (QueryParam): The query parameters
+
+    Returns:
+        tuple[list[dict], list[dict], list[dict]]: The node data, related edges and text chunks
+    """
     # get similar entities
     results = await entities_vdb.query(query, top_k=query_param.top_k)
     if not len(results):
-        return None
+        return (None, None, None)
     # get entity information
     node_datas = await asyncio.gather(
         *[knowledge_graph_inst.get_node(r["entity_name"]) for r in results]
@@ -738,7 +851,11 @@ async def _get_node_data(
     logger.info(
         f"Local query uses {len(node_datas)} entites, {len(use_relations)} relations, {len(use_text_units)} text units"
     )
+    return node_datas, use_relations, use_text_units
 
+def _get_low_contexts(
+    node_datas, use_relations, use_text_units
+    ):
     # build prompt
     entites_section_list = [["id", "entity", "type", "description", "rank"]]
     for i, n in enumerate(node_datas):
@@ -901,7 +1018,7 @@ async def _get_edge_data(
     results = await relationships_vdb.query(keywords, top_k=query_param.top_k)
 
     if not len(results):
-        return None
+        return (None, None, None)
 
     edge_datas = await asyncio.gather(
         *[knowledge_graph_inst.get_edge(r["src_id"], r["tgt_id"]) for r in results]
@@ -935,6 +1052,13 @@ async def _get_edge_data(
     logger.info(
         f"Global query uses {len(use_entities)} entites, {len(edge_datas)} relations, {len(use_text_units)} text units"
     )
+    return edge_datas, use_entities, use_text_units
+
+def _get_high_contexts(
+    edge_datas,
+    use_entities,
+    use_text_units
+    ):
 
     relations_section_list = [
         ["id", "source", "target", "description", "keywords", "weight", "rank"]

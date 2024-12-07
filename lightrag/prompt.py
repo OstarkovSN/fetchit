@@ -126,138 +126,139 @@ Output:
 
 PROMPTS[
     "summarize_entity_descriptions"
-] = """You are a helpful assistant responsible for generating a comprehensive summary of the data provided below.
-Given one or two entities, and a list of descriptions, all related to the same entity or group of entities.
-Please concatenate all of these into a single, comprehensive description. Make sure to include information collected from all the descriptions.
-If the provided descriptions are contradictory, please resolve the contradictions and provide a single, coherent summary.
-Make sure it is written in third личность, and include the entity names so we the have full context.
-Use {language} as output language.
+] = """Вы - полезный помощник, ответственный за генерацию исчерпывающего резюме данных, предоставленных ниже.
+Даны одна или две сущности, и список описаний, все связанные с той же сущностью или группой сущностей.
+Пожалуйста, объедините все эти описания в одно исчерпывающее описание. Убедитесь, что информация, собранная из всех описаний, включена.
+Если предоставленные описания противоречат друг другу, пожалуйста, разрешите противоречия и предоставьте одно, логичное резюме.
+Убедитесь, что оно написано от третьего лица, и включите имена сущностей, чтобы у нас была полная контекстная информация.
+Используйте {language} в качестве языка вывода.
 
 #######
--Data-
-Entities: {entity_name}
-Description List: {description_list}
+-Данные-
+Сущности: {entity_name}
+Список описаний: {description_list}
 #######
-Output:
+Вывод:
 """
 
 PROMPTS[
     "entiti_continue_extraction"
-] = """MANY entities were missed in the last extraction.  Add them below using the same format:
+] = """МНОГО сущностей было пропущено в последнем извлечении.  Добавьте их ниже в том же формате:
 """
 
 PROMPTS[
     "entiti_if_loop_extraction"
-] = """It appears some entities may have still been missed.  Answer YES | NO if there are still entities that need to be added.
+] = """Видимо, некоторые сущности были пропущены.  Ответьте ДА | НЕТ, если еще есть сущности, которые нужно добавить.
 """
 
-PROMPTS["fail_response"] = "Sorry, I'm not able to provide an answer to that question."
+PROMPTS['yes_results'] = {"yes", "да", "y", "да.", "yes."}
+
+PROMPTS["fail_response"] = "Извините, я не могу ответить на этот вопрос."
 
 PROMPTS["rag_response"] = """---Role---
 
-You are a helpful assistant responding to questions about data in the tables provided.
+Вы - полезный помощник, отвечающий на вопросы о данных в таблицах, указанных ниже.
 
 
----Goal---
+---Цель---
 
-Generate a response of the target length and format that responds to the user's question, summarizing all information in the input data tables appropriate for the response length and format, and incorporating any relevant general knowledge.
-If you don't know the answer, just say so. Do not make anything up.
-Do not include information where the supporting evidence for it is not provided.
+Сгенерируйте ответ заданной длины и формата, который отвечает на вопрос пользователя, резюмируя всю информацию в таблицах данных, соответствующих ответу заданной длины и формата, и включая любые соответствующие общие знания.
+Если вы не знаете ответ, просто скажите об этом. Не выдумывайте ничего.
+Не включайте информацию, если для нее нет доказательств.
 
----Target response length and format---
+
+---Целевая длина и формат ответа---
 
 {response_type}
 
----Data tables---
+---Таблицы данных---
 
 {context_data}
 
-Add sections and commentary to the response as appropriate for the length and format. Style the response in markdown.
+Добавьте разделы и комментарии к ответу, как это необходимо для длины и формата. Стиль ответа - markdown.
 """
 
-PROMPTS["keywords_extraction"] = """---Role---
+PROMPTS["keywords_extraction"] = """---Роль---
 
-You are a helpful assistant tasked with identifying both high-level and low-level keywords in the user's query.
-Use {language} as output language.
+Вы - полезный ассистент, ответственный за идентификацию как высокоуровневых, так и низкоуровневых ключевых слов в запросе пользователя.
+Используйте {language} в качестве языка вывода.
 
----Goal---
+---Цель---
 
-Given the query, list both high-level and low-level keywords. High-level keywords focus on overarching concepts or themes, while low-level keywords focus on specific entities, details, or concrete terms.
+Дан запрос, выберите как высокоуровневые, так и низкоуровневые ключевые слова. Высокоуровневые ключевые слова фокусируются на общих концепциях или темах, а низкоуровневые ключевые слова фокусируются на конкретных сущностях, деталях или конкретных терминах.
 
----Instructions---
+---Инструкции---
 
-- Output the keywords in JSON format.
-- The JSON should have two keys:
-  - "high_level_keywords" for overarching concepts or themes.
-  - "low_level_keywords" for specific entities or details.
+- Выводите ключевые слова в формате JSON.
+- JSON должен иметь два ключа:
+  - "high_level_keywords" для общих концепций или тем.
+  - "low_level_keywords" для конкретных сущностей или деталей.
 
 ######################
--Examples-
+-Примеры-
 ######################
 {examples}
 
 #############################
--Real Data-
+-Реальные данные-
 ######################
-Query: {query}
+Запрос: {query}
 ######################
-The `Output` should be human text, not unicode characters. Keep the same language as `Query`.
-Output:
-
+`Вывод` должен быть текстом, а не символами Юникода. Следите за тем, чтобы язык вывода был тем же, что и в `Запрос`.
+Вывод:
 """
-
 PROMPTS["keywords_extraction_examples"] = [
-    """Example 1:
+    """Пример 1:
 
-Query: "How does international trade influence global economic stability?"
+Запрос: "Как международная торговля влияет на глобальную экономическую стабильность?"
 ################
-Output:
+Вывод:
 {{
-  "high_level_keywords": ["International trade", "Global economic stability", "Economic impact"],
-  "low_level_keywords": ["Trade agreements", "Tariffs", "Currency exchange", "Imports", "Exports"]
+  "high_level_keywords": ["Международная торговля", "Глобальная экономическая стабильность", "Экономическое воздействие"],
+  "low_level_keywords": ["Торговые соглашения", "Тарифы", "Обмен валют", "Импорт", "Экспорт"]
 }}
 #############################""",
-    """Example 2:
+    """Пример 2:
 
-Query: "What are the environmental consequences of deforestation on biodiversity?"
+Запрос: "Каковы экологические последствия вырубки лесов для биоразнообразия?"
 ################
-Output:
+Вывод:
 {{
-  "high_level_keywords": ["Environmental consequences", "Deforestation", "Biodiversity loss"],
-  "low_level_keywords": ["Species extinction", "Habitat destruction", "Carbon emissions", "Rainforest", "Ecosystem"]
+  "high_level_keywords": ["Экологические последствия", "Вырубка лесов", "Потеря биоразнообразия"],
+  "low_level_keywords": ["Вымирание видов", "Уничтожение среды обитания", "Выбросы углерода", "Тропический лес", "Экосистема"]
 }}
 #############################""",
-    """Example 3:
+    """Пример 3:
 
-Query: "What is the role of education in reducing poverty?"
+Запрос: "Какова роль образования в уменьшении бедности?"
 ################
-Output:
+Вывод:
 {{
-  "high_level_keywords": ["Education", "Poverty reduction", "Socioeconomic development"],
-  "low_level_keywords": ["School access", "Literacy rates", "Job training", "Income inequality"]
+  "high_level_keywords": ["Образование", "Сокращение бедности", "Социально-экономическое развитие"],
+  "low_level_keywords": ["Доступ к школе", "Уровень грамотности", "Тренинг на работе", "Разница в доходах"]
 }}
 #############################""",
 ]
 
 
-PROMPTS["naive_rag_response"] = """---Role---
+PROMPTS["naive_rag_response"] = """---Роль---
 
-You are a helpful assistant responding to questions about documents provided.
+Вы - полезный помощник, отвечающий на вопросы о документах.
 
 
----Goal---
+---Цель---
 
-Generate a response of the target length and format that responds to the user's question, summarizing all information in the input data tables appropriate for the response length and format, and incorporating any relevant general knowledge.
-If you don't know the answer, just say so. Do not make anything up.
-Do not include information where the supporting evidence for it is not provided.
+Сгенерируйте ответ заданной длины и формата, отвечающий на вопрос пользователя, суммируя всю информацию в таблицах input_data, подходящую для длины и формата ответа, и включая любые соответствующие общие знания.
+Если вы не знаете ответ, просто скажите. Не выдумывайте ничего.
+Не включайте информацию, для которой нет доказательств.
 
----Target response length and format---
+---Целевая длина и форма ответа---
 
 {response_type}
 
----Documents---
+---Документы---
 
 {content_data}
 
-Add sections and commentary to the response as appropriate for the length and format. Style the response in markdown.
+Добавьте разделы и комментарии к ответу, как это необходимо для длины и формата. Стиль ответа - markdown.
 """
