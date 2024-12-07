@@ -1,0 +1,56 @@
+
+[tool.poetry]
+name = ""
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+tensorboard = "^2.18.0"
+transformers = "^4.46.3"
+ipykernel = "^6.29.5"
+torch = {version = "^2.5.1+cu118", source = "pytorch"}
+accelerate = "^1.1.1"
+aioboto3 = "^13.2.0"
+ollama = "^0.4.2"
+openai = "^1.57.0"
+tenacity = "^9.0.0"
+tiktoken = "^0.8.0"
+nano-vectordb = "^0.0.4.3"
+neo4j = "^5.27.0"
+oracledb = "^2.5.0"
+huggingface-hub = {extras = ["cli"], version = "^0.26.3"}
+optimum = "^1.23.3"
+auto-gptq = "^0.7.1"
+pyvis = "^0.3.2"
+langchain = "^0.3.9"
+langchain-openai = "^0.2.11"
+colpali-engine = "^0.3.4"
+pymilvus = "^2.5.0"
+pymongo = "^4.10.1"
+xxhash = "^3.5.0"
+hnswlib = "^0.8.0"
+aspose-ocr-python-cpp = "^24.9.0"
+lxml = "^5.3.0"
+python-docx = "^1.1.2"
+docxcompose = "^1.4.0"
+docx = "^0.2.4"
+docx2txt = "^0.8"
+ipywidgets = "^8.1.5"
+aspose-words = "^24.11.0"
+aspose-slides = "^24.12.0"
+aspose-pdf = "^24.11.0"
+pdfplumber = "^0.11.4"
+
+
+[[tool.poetry.source]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "explicit"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

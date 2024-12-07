@@ -1,0 +1,11 @@
+services:
+  env:
+    image: ostarkovsn/environments:DL.basic
+    volumes:
+      - type: bind
+        source: ~/mnt/fetchit
+        target: /root/harbour
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    tty: true
